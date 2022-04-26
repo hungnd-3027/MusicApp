@@ -1,6 +1,5 @@
 package com.hungngo.musicapp.view.fragment
 
-import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,27 +11,34 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.hungngo.musicapp.MyCommon
+import com.hungngo.musicapp.Constance
 import com.hungngo.musicapp.R
+import com.hungngo.musicapp.data.model.Song
 import com.hungngo.musicapp.service.MyMusicService
 import kotlinx.android.synthetic.main.fragment_controller.*
 import kotlinx.android.synthetic.main.fragment_controller.view.*
+import java.io.Serializable
 import java.text.SimpleDateFormat
+import java.util.*
 
-private const val ARG_PARAM1 = "bundle"
+private const val BUNDLE_LIST_SONGS = "BUNDLE_LIST_SONGS"
 
 class ControllerFragment : Fragment(), View.OnClickListener {
-    private var isPlaying: Boolean? = true
-    private var bundle: Bundle? = null
+    private var isPlaying: Boolean = true
+    private var listSongs: MutableList<Song>? = null
 
-
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let {
+            listSongs = it.getSerializable(BUNDLE_LIST_SONGS) as MutableList<Song>?
+        }
+    }
     private val mTimeReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        @SuppressLint("SimpleDateFormat")
         override fun onReceive(context: Context?, intent: Intent) {
             // Get extra data included in the Intent
-            if (intent.action.equals(MyCommon.ACTION_SEND)) {
-                val data = intent.getIntExtra("current_time", 0)
-                val format = SimpleDateFormat("mm:ss")
+            if (intent.action.equals(Constance.ACTION_SEND)) {
+                val data = intent.getIntExtra(Constance.EXTRA_CURRENT_TIME, 0)
+                val format = SimpleDateFormat("mm:ss",Locale.getDefault())
                 tv_elapsed_time.text = format.format(data)
                 sb_song.progress = data
             }
@@ -40,28 +46,24 @@ class ControllerFragment : Fragment(), View.OnClickListener {
     }
 
     private val mTotalReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        @SuppressLint("SimpleDateFormat")
         override fun onReceive(context: Context?, intent: Intent) {
             // Get extra data included in the Intent
-            if (intent.action.equals(MyCommon.ACTION_SEND_TOTAL)) {
+            if (intent.action.equals(Constance.ACTION_SEND_TOTAL)) {
                 val bundle = intent.extras
                 if (bundle != null) {
-                    val total = bundle.getInt("total")
-                    isPlaying = bundle.getBoolean("status", true)
+                    val total = bundle.getInt(Constance.BUNDLE_TOTAL)
+                    isPlaying = bundle.getBoolean(Constance.BUNDLE_STATUS, true)
 
-                    val format = SimpleDateFormat("mm:ss")
+                    if (isPlaying){
+                        fab_play.setImageResource(R.drawable.ic_stop_music)
+                    }else{
+                        fab_play.setImageResource(R.drawable.ic_play_music)
+                    }
+                    val format = SimpleDateFormat("mm:ss", Locale.getDefault())
                     tv_remaining_time?.text = format.format(total)
                     sb_song?.max = total
                 }
             }
-        }
-    }
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            bundle = it.getBundle(ARG_PARAM1)
         }
     }
 
@@ -73,10 +75,10 @@ class ControllerFragment : Fragment(), View.OnClickListener {
         val view = inflater.inflate(R.layout.fragment_controller, container, false)
 
         LocalBroadcastManager.getInstance(view.context)
-            .registerReceiver(mTimeReceiver, IntentFilter(MyCommon.ACTION_SEND))
+            .registerReceiver(mTimeReceiver, IntentFilter(Constance.ACTION_SEND))
 
         LocalBroadcastManager.getInstance(view.context)
-            .registerReceiver(mTotalReceiver, IntentFilter(MyCommon.ACTION_SEND_TOTAL))
+            .registerReceiver(mTotalReceiver, IntentFilter(Constance.ACTION_SEND_TOTAL))
 
         view.fab_play.setOnClickListener(this)
         view.fab_next.setOnClickListener(this)
@@ -93,7 +95,10 @@ class ControllerFragment : Fragment(), View.OnClickListener {
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 val intent = Intent(context, MyMusicService::class.java)
-                intent.putExtra("time", seekBar?.progress)
+                val bundle = Bundle()
+                bundle.putSerializable(Constance.BUNDLE_LIST_SONGS, listSongs as Serializable)
+                intent.putExtra(Constance.BUNDLE_TIME, seekBar?.progress)
+                intent.putExtras(bundle)
                 context?.startService(intent)
             }
         })
@@ -103,46 +108,49 @@ class ControllerFragment : Fragment(), View.OnClickListener {
 
     companion object {
         @JvmStatic
-        fun newInstance(bundle: Bundle) =
-            ControllerFragment().apply {
-                arguments = Bundle().apply {
-                    putBundle(ARG_PARAM1, bundle)
-                }
+        fun newInstance(listSongs: MutableList<Song>?) = ControllerFragment().apply {
+            arguments = Bundle().apply {
+                putSerializable(BUNDLE_LIST_SONGS, listSongs as Serializable)
             }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        context?.let { LocalBroadcastManager.getInstance(it).unregisterReceiver(mTimeReceiver) }
-        context?.let { LocalBroadcastManager.getInstance(it).unregisterReceiver(mTotalReceiver) }
+        context?.let {
+            LocalBroadcastManager.getInstance(it).apply {
+                unregisterReceiver(mTimeReceiver)
+                unregisterReceiver(mTotalReceiver)
+            }
+        }
     }
 
     override fun onClick(v: View?) {
         val intent = Intent(context, MyMusicService::class.java)
-        when (v!!.id) {
+        when (v?.id) {
             R.id.fab_play -> {
                 clickButtonPlay(intent)
             }
             R.id.fab_next -> {
                 fab_play.setImageResource(R.drawable.ic_stop_music)
-                intent.action = MyCommon.ACTION_NEXT
+                intent.action = Constance.ACTION_NEXT
             }
             R.id.fab_previous -> {
                 fab_play.setImageResource(R.drawable.ic_stop_music)
-                intent.action = MyCommon.ACTION_PREVIOUS
+                intent.action = Constance.ACTION_PREVIOUS
             }
         }
         context?.startService(intent)
     }
 
     private fun clickButtonPlay(intent: Intent) {
-        if (isPlaying!!) {
+        if (isPlaying) {
             fab_play.setImageResource(R.drawable.ic_play_music)
-            intent.action = MyCommon.ACTION_PAUSE
+            intent.action = Constance.ACTION_PAUSE
             isPlaying = false
         } else {
             fab_play.setImageResource(R.drawable.ic_stop_music)
-            intent.action = MyCommon.ACTION_RESUME
+            intent.action = Constance.ACTION_RESUME
             isPlaying = true
         }
     }

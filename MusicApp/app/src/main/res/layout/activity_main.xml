@@ -7,18 +7,16 @@
     tools:context=".view.MainActivity">
 
     <FrameLayout
-        android:id="@+id/frl_list_song"
+        android:id="@+id/frame_list_song"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:layout_editor_absoluteX="-38dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <FrameLayout
-        android:id="@+id/frl_controller_song"
+        android:id="@+id/frame_controller_song"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="@dimen/dp_120"
         app:layout_constraintBottom_toBottomOf="parent" />
-
-
-
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,21 +1,23 @@
 package com.hungngo.musicapp.presenter
 
-import com.hungngo.musicapp.MyCommon
-import com.hungngo.musicapp.R
-import com.hungngo.musicapp.model.Song
+import com.hungngo.musicapp.data.model.Song
+import com.hungngo.musicapp.data.reposity.SongRepository
+import com.hungngo.musicapp.data.source.OnResultCallBack
 
-class MainActivityPresenter(private val view: MainActivityContract.View) : MainActivityContract.Presenter {
+class MainActivityPresenter(
+    private val songRepository: SongRepository,
+    private val view: MainActivityContract.View
+) : MainActivityContract.Presenter {
 
     override fun getListSongs() {
-        MyCommon.listSongs.add(Song("Thức giấc", R.raw.thucgiac_dalab))
-        MyCommon.listSongs.add(Song("Hẹn kiếp sau", R.raw.henkiepsau_khahiep))
-        MyCommon.listSongs.add(Song("Thê lương", R.raw.theluong_phucchinh))
-        MyCommon.listSongs.add(Song("Danh phận", R.raw.danhphan_jangmi))
-        MyCommon.listSongs.add(Song("Thức giấc", R.raw.thucgiac_dalab))
-        MyCommon.listSongs.add(Song("Hẹn kiếp sau", R.raw.henkiepsau_khahiep))
-        MyCommon.listSongs.add(Song("Thê lương", R.raw.theluong_phucchinh))
-        MyCommon.listSongs.add(Song("Danh phận", R.raw.danhphan_jangmi))
-        view.onGetListSongsSuccess("Get songs successfully")
-    }
+        songRepository.getData(object : OnResultCallBack {
+            override fun onLoaded(songs: MutableList<Song>) {
+                view.onGetListSongsSuccess(songs)
+            }
 
+            override fun onFailed() {
+                view.onGetListSongsFailed()
+            }
+        })
+    }
 }
